@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>ETS Resource Allocation - Grand</title>
+
+		<!-- jsPDF + autoTable -->
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+		<!-- External CSS -->
+		<link rel="stylesheet" href="styles.css" />
+	</head>
+
+	<script src="script.js"></script>
+
+	<body>
+		<header>
+			<!-- this is the menu (removed) + label on the top left-->
+			<div class="left">
+				<div style="display:flex;flex-direction:column">
+					<div class="logo-title" id="logoLabel">ETS Resource Allocation</div>
+				</div>
+			</div>
+
+			<div class="actions">
+				<div class="resources-menu">
+					<div class="resources-toggle" id="resourcesToggle">Resources ▾</div>
+					<div class="resources-dropdown" id="resourcesDropdown" aria-hidden="true">
+						<h4>Resource Sets</h4>
+						<div class="resources-list" id="resourcesList"></div>
+						<div style="display:flex;gap:8px;justify-content:flex-end;">
+							<button class="btn" id="chooseResourceBtn">Choose</button>
+							<button class="btn secondary" id="createResourceBtn">Create New</button>
+						</div>
+					</div>
+				</div>
+
+				<div class="right-actions">
+					<div id="autosaveBadge" class="small" style="margin-right:8px;color:var(--muted)">Autosaved</div>
+					<button class="btn secondary" id="saveBtn">Save</button>
+					<button class="btn secondary" id="finishBtn">Finish Scenario</button>
+					<button class="btn secondary" id="createNewBtn">Create New Scenario</button>
+					<button class="btn" id="exportBtn">Export to PDF</button>
+				</div>
+			</div>
+		</header>
+
+		<nav class="menu" id="mainMenu">
+			<a href="#" data-page="grand">Grand</a>
+			<a href="#" data-page="command">Command</a>
+			<a href="#" data-page="collab">Collaboration</a>
+			<a href="#" data-page="comm">Communication</a>
+			<a href="#" data-page="scenarios">Scenarios</a>
+		</nav>
+
+		<!-- Sidebar -->
+		<div class="sidebar" id="sidebar" aria-hidden="true">
+			<h4>Open Requests</h4>
+			<div id="sidebarList"></div>
+			<hr />
+			<div style="display:flex;justify-content:space-between;align-items:center;">
+				<div class="small">Active Resource Set</div>
+				<select id="activeResourceSet" style="padding:6px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#111;"></select>
+			</div>
+			<div style="margin-top:8px;" class="small">Tip: Mark Done here or in the table. All changes autosave.</div>
+		</div>
+
+		<!-- Sidebar toggle (40px) -->
+		<button id="sidebarToggle" aria-label="Open requests panel" aria-expanded="false">▶</button>
+
+		<main>
+			<div class="page-title">
+				<h2 id="pageTitle">Grand</h2>
+				<div>
+					<span class="small">Scenario name</span>
+					<input id="scenarioName" class="small-input" placeholder="Untitled scenario" style="width:280px;margin-left:8px" />
+				</div>
+			</div>
+
+			<div id="grandPage" class="page-content page" data-page="grand">
+				<strong>Grand Scenario Table</strong>
+				<table id="grandTable">
+					<tr><th>Role</th><th>Assignment</th></tr>
+					<tr><td>Incident Commander</td><td contenteditable="true"></td></tr>
+					<tr><td>Operations Head</td><td contenteditable="true"></td></tr>
+					<tr><td>Liaison</td><td contenteditable="true"></td></tr>
+					<tr><td>Logistics</td><td contenteditable="true"></td></tr>
+					<tr><td>Finance</td><td contenteditable="true"></td></tr>
+					<tr><td>Planning</td><td contenteditable="true"></td></tr>
+					<tr><td>PIO</td><td contenteditable="true"></td></tr>
+				</table>
+
+				<hr style="margin:14px 0; border:none; border-top:1px solid #eee;" />
+
+				<strong>Resource Request Log</strong>
+				<div class="controls" style="margin-bottom:8px;">
+					<div style="display:flex;gap:8px;align-items:center;">
+						<div class="small">Note: travel speed hidden, est. minutes use default calculation unless overridden.</div>
+					</div>
+				</div>
+
+				<div class="request-arrival-wrapper">
+
+					<table id="requestTable" aria-label="Resource requests">
+					<thead>
+						<tr>
+							<th><div>Time</div></th>
+							<th><div>Item</div></th>
+							<th><div>Qty</div></th>
+							<th><div>Category</div></th>
+							<th><div>Src</div></th>
+							<th><div>Remarks</div></th>
+							<th><div>Est<br>Min</div></th>
+							<th><div>ETA</div></th>
+							<th><div>Del</div></th>
+							<th class="checkbox-col"><div>Done</div></th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+
+				<table id="arrivalTable" aria-label="Arrived items">
+					<thead>
+						<tr>
+							<th><div>Time</div></th>
+							<th><div>Item</div></th>
+							<th><div>Qty</div></th>
+							<th><div>Cat</div></th>
+							<th><div>Src</div></th>
+							<th><div>Remarks</div></th>
+							<th><div>Time<br>Arrived</div></th>
+							<th><div>Del</div></th>
+						</tr>
+					</thead>
+					<tbody></tbody>
+				</table>
+
+				</div>
+
+				<div style="display:flex;gap:8px;margin-top:10px;">
+					<button class="btn" id="addRowBtn">Add Request Row</button>
+				</div>
+			</div>
+
+			<footer>ETS Resource Allocation Prototype</footer>
+		</main>
+
+		<!-- Modal for creating resource sets and for save/export -->
+		<div class="modal-backdrop" id="modalBackdrop">
+			<div class="modal" id="modal"></div>
+		</div>
+	</body>
+</html>
