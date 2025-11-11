@@ -450,12 +450,6 @@ footer {
 	}
 }
 
-.delete-btn {
-	border: none;
-	background: none;
-	cursor: pointer;
-	font-size: 16px;
-}
 .delete-btn:hover {
 	color: red;
 }

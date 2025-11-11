@@ -50,13 +50,11 @@ document.addEventListener('DOMContentLoaded', () => {
 				<td contenteditable="true" class="delQty"></td>
 				<td contenteditable="true" class="delRemarks"></td>
 				<td style="text-align:center">
-					<button class="btn secondary delRowBtn" type="button">X</button>
+					<button type="button" class="delRowBtn btn">✕</button>
 				</td>
 			`;
 
-			tr.querySelector('.delRowBtn').addEventListener('click', () => {
-				tr.remove();
-			});
+			tr.querySelector('.delRowBtn').addEventListener('click', () => tr.remove());
 
 			tbody.appendChild(tr);
 		}
@@ -66,14 +64,13 @@ document.addEventListener('DOMContentLoaded', () => {
 		return container;
 	}
 
-	// Main function: add request row + dropdown
 	function addRequestRow() {
 		const currentTime = getCurrentTimeStr();
 
 		const tr = document.createElement('tr');
 		tr.innerHTML = `
 			<td>
-				<button class="play-btn" type="button">▶</button>
+				<button class="play-btn btn" type="button">▶</button>
 				<span class="request-time">${currentTime}</span>
 			</td>
 			<td contenteditable="true"></td>
@@ -83,9 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
 			<td contenteditable="true"></td>
 			<td contenteditable="true" class="est-min"></td>
 			<td contenteditable="true" class="eta"></td>
-			<td><button class="delete-btn" type="button">✕</button></td>
+			<td><button type="button" class="delete-btn btn">✕</button></td>
 			<td class="checkbox-col">
-				<button class="done-btn btn" type="button">Done</button>
+				<button type="button" class="done-btn btn">✔</button>
 			</td>
 		`;
 
@@ -94,15 +91,12 @@ document.addEventListener('DOMContentLoaded', () => {
 		const estCell = tr.querySelector('.est-min');
 		const etaCell = tr.querySelector('.eta');
 
-		// Helpers for ETA calculation
 		function addMinutesToTime(timeStr, minutesToAdd) {
 			const [hh, mm] = timeStr.split(':').map(Number);
 			const date = new Date();
 			date.setHours(hh);
 			date.setMinutes(mm + Number(minutesToAdd));
-			const newH = String(date.getHours()).padStart(2, '0');
-			const newM = String(date.getMinutes()).padStart(2, '0');
-			return `${newH}:${newM}`;
+			return `${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
 		}
 
 		function minutesDiffFromNow(timeStr) {
@@ -112,20 +106,20 @@ document.addEventListener('DOMContentLoaded', () => {
 			target.setHours(hh);
 			target.setMinutes(mm);
 			let diffMs = target - now;
-			if (diffMs < 0) diffMs += 24*60*60*1000; // handle crossing midnight
+			if (diffMs < 0) diffMs += 24*60*60*1000;
 			return Math.round(diffMs / 60000);
 		}
 
 		// Two-way binding
 		estCell.addEventListener('input', () => {
 			const val = estCell.textContent.trim();
-			if (val === '' || isNaN(val)) return;
+			if (!val || isNaN(val)) return;
 			etaCell.textContent = addMinutesToTime(currentTime, val);
 		});
 
 		etaCell.addEventListener('input', () => {
 			const val = etaCell.textContent.trim();
-			if (val === '') return;
+			if (!val) return;
 			estCell.textContent = minutesDiffFromNow(val);
 		});
 
@@ -154,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				<td contenteditable="true">${tr.children[4].textContent}</td>
 				<td contenteditable="true">${tr.children[5].textContent}</td>
 				<td contenteditable="true">${etaCell.textContent}</td>
-				<td><button class="delete-btn" type="button">✕</button></td>
+				<td><button type="button" class="delete-btn btn">✕</button></td>
 			`;
 
 			arrivalRow.querySelectorAll('td').forEach(td => td.style.whiteSpace = "normal");
@@ -164,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 			if (partialRows.length) {
 				const partialContainer = document.createElement('tr');
-				const colspan = 9;
+				const colspan = 8;
 				partialContainer.innerHTML = `<td colspan="${colspan}" style="padding:0;"></td>`;
 				const td = partialContainer.querySelector('td');
 
@@ -175,6 +169,18 @@ document.addEventListener('DOMContentLoaded', () => {
 				innerTable.style.fontSize = '0.9em';
 				innerTable.style.margin = '0';
 				innerTable.style.padding = '0';
+
+				// Add header for nested partial deliveries table
+				const thead = document.createElement('thead');
+				thead.innerHTML = `
+					<tr>
+						<th style="width:120px; border-bottom: 1px solid #ccc;">Time</th>
+						<th style="border-bottom: 1px solid #ccc;">Quantity / Notes</th>
+						<th style="width:160px; border-bottom: 1px solid #ccc;">Remarks</th>
+						<th style="width:60px; border-bottom: 1px solid #ccc;">Delete</th>
+					</tr>
+				`;
+				innerTable.appendChild(thead);
 
 				const colgroup = document.createElement('colgroup');
 				colgroup.innerHTML = `
@@ -197,15 +203,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 				innerTable.appendChild(innerTbody);
 				td.appendChild(innerTable);
-
 				arrivalTableBody.appendChild(arrivalRow);
 				arrivalTableBody.appendChild(partialContainer);
 			} else {
 				arrivalTableBody.appendChild(arrivalRow);
 			}
 
-			const delBtn = arrivalRow.querySelector('.delete-btn');
-			if (delBtn) delBtn.addEventListener('click', () => arrivalRow.remove());
+
+			// Attach delete listener for main arrival row
+			arrivalRow.querySelector('.delete-btn').addEventListener('click', () => arrivalRow.remove());
 
 			tr.remove();
 			dropdown.remove();
@@ -214,10 +220,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		requestTableBody.appendChild(tr);
 		requestTableBody.appendChild(dropdown);
 	}
-
-
-
-
 
 	addRowBtn.addEventListener('click', addRequestRow);
 });

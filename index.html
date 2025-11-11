@@ -40,6 +40,7 @@
 				<div class="right-actions">
 					<div id="autosaveBadge" class="small" style="margin-right:8px;color:var(--muted)">Autosaved</div>
 					<button class="btn secondary" id="saveBtn">Save</button>
+					<button class="btn secondary" id="loadBtn">Load</button>
 					<button class="btn secondary" id="finishBtn">Finish Scenario</button>
 					<button class="btn secondary" id="createNewBtn">Create New Scenario</button>
 					<button class="btn" id="exportBtn">Export to PDF</button>
@@ -54,21 +55,6 @@
 			<a href="#" data-page="comm">Communication</a>
 			<a href="#" data-page="scenarios">Scenarios</a>
 		</nav>
-
-		<!-- Sidebar -->
-		<div class="sidebar" id="sidebar" aria-hidden="true">
-			<h4>Open Requests</h4>
-			<div id="sidebarList"></div>
-			<hr />
-			<div style="display:flex;justify-content:space-between;align-items:center;">
-				<div class="small">Active Resource Set</div>
-				<select id="activeResourceSet" style="padding:6px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#111;"></select>
-			</div>
-			<div style="margin-top:8px;" class="small">Tip: Mark Done here or in the table. All changes autosave.</div>
-		</div>
-
-		<!-- Sidebar toggle (40px) -->
-		<button id="sidebarToggle" aria-label="Open requests panel" aria-expanded="false">▶</button>
 
 		<main>
 			<div class="page-title">
