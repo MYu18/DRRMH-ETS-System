@@ -501,10 +501,24 @@ table td, table th {
 #requestTable {
     table-layout: fixed;
     width: 100%;
+	font-size: 60%;
 }
 
 #requestTable th:nth-child(1){
 	table-layout: auto;
 	white-space: nowrap;
 	width: 55px;
+}
+
+
+#arrivalTable {
+    table-layout: fixed;
+    width: 100%;
+	font-size: 60%;
+}
+
+#arrivalTable td {
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    white-space: normal;
 }
