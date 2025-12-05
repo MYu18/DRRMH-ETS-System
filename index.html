@@ -1,141 +1,194 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width,initial-scale=1" />
-		<title>ETS Resource Allocation - Grand</title>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MISSION DISPATCH — ETS Resource Dispatcher</title>
 
-		<!-- jsPDF + autoTable -->
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+  <!-- styles -->
+  <link rel="stylesheet" href="styles.css" />
 
-		<!-- External CSS -->
-		<link rel="stylesheet" href="styles.css" />
-	</head>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 
-	<script src="script.js"></script>
+  <!-- jsPDF + autoTable (deferred) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js" defer></script>
+</head>
+<body>
 
-	<body>
-		<header>
-			<!-- this is the menu (removed) + label on the top left-->
-			<div class="left">
-				<div style="display:flex;flex-direction:column">
-					<div class="logo-title" id="logoLabel">ETS Resource Allocation</div>
-				</div>
-			</div>
+<header>
+  <div class="left">
+    <div class="logo-title">MISSION DISPATCH</div>
+    <div class="subtitle">Scenario-based Resource Dispatcher</div>
+  </div>
 
-			<div class="actions">
-				<div class="resources-menu">
-					<div class="resources-toggle" id="resourcesToggle">Resources ▾</div>
-					<div class="resources-dropdown" id="resourcesDropdown" aria-hidden="true">
-						<h4>Resource Sets</h4>
-						<div class="resources-list" id="resourcesList"></div>
-						<div style="display:flex;gap:8px;justify-content:flex-end;">
-							<button class="btn" id="chooseResourceBtn">Choose</button>
-							<button class="btn secondary" id="createResourceBtn">Create New</button>
-						</div>
-					</div>
-				</div>
+  <nav class="top-nav" role="navigation" aria-label="Main navigation">
+    <button id="navAnalytics" class="nav-btn" data-target="analyticsPage">Analytics</button>
+    <button id="navScenarios" class="nav-btn" data-target="scenariosPage">Scenarios</button>
+    <button id="navOngoing" class="nav-btn active" data-target="grandPage">Ongoing</button>
+  </nav>
 
-				<div class="right-actions">
-					<div id="autosaveBadge" class="small" style="margin-right:8px;color:var(--muted)">Autosaved</div>
-					<button class="btn secondary" id="saveBtn">Save</button>
-					<button class="btn secondary" id="loadBtn">Load</button>
-					<button class="btn secondary" id="finishBtn">Finish Scenario</button>
-					<button class="btn secondary" id="createNewBtn">Create New Scenario</button>
-					<button class="btn" id="exportBtn">Export to PDF</button>
-				</div>
-			</div>
-		</header>
+  <div class="right-actions" id="topActions" aria-hidden="false">
+    <!-- CSV loader & location selector (JS will create dropdown inside .resources-upload) -->
+    <div class="csv-controls" aria-label="Resources">
+      <label class="btn file-btn" title="Upload a resources.csv (optional)">
+        Upload CSV
+        <input type="file" id="csvUpload" accept=".csv" hidden />
+      </label>
 
-		<nav class="menu" id="mainMenu">
-			<a href="#" data-page="grand">Grand</a>
-			<a href="#" data-page="command">Command</a>
-			<a href="#" data-page="collab">Collaboration</a>
-			<a href="#" data-page="comm">Communication</a>
-			<a href="#" data-page="scenarios">Scenarios</a>
-		</nav>
+      <!-- JS will insert the location select here -->
+      <div class="resources-upload" style="display:flex; align-items:center; gap:8px;"></div>
 
-		<main>
-			<div class="page-title">
-				<h2 id="pageTitle">Grand</h2>
-				<div>
-					<span class="small">Scenario name</span>
-					<input id="scenarioName" class="small-input" placeholder="Untitled scenario" style="width:280px;margin-left:8px" />
-				</div>
-			</div>
+      <span id="csvStatus" class="small muted">resources.csv: <span id="csvFileName">not loaded</span></span>
+    </div>
 
-			<div id="grandPage" class="page-content page" data-page="grand">
-				<strong>Grand Scenario Table</strong>
-				<table id="grandTable">
-					<tr><th>Role</th><th>Assignment</th></tr>
-					<tr><td>Incident Commander</td><td contenteditable="true"></td></tr>
-					<tr><td>Operations Head</td><td contenteditable="true"></td></tr>
-					<tr><td>Liaison</td><td contenteditable="true"></td></tr>
-					<tr><td>Logistics</td><td contenteditable="true"></td></tr>
-					<tr><td>Finance</td><td contenteditable="true"></td></tr>
-					<tr><td>Planning</td><td contenteditable="true"></td></tr>
-					<tr><td>PIO</td><td contenteditable="true"></td></tr>
-				</table>
+    <div class="autosave-text"><span id="autosaveBadge">Autosaved --:--</span></div>
 
-				<hr style="margin:14px 0; border:none; border-top:1px solid #eee;" />
+    <button id="saveBtn" class="btn">Save</button>
+    <button id="finishBtn" class="btn">Finish</button>
+    <button id="createNewBtn" class="btn">Create New</button>
+    <button id="exportBtn" class="btn">Export PDF</button>
+  </div>
+</header>
 
-				<strong>Resource Request Log</strong>
-				<div class="controls" style="margin-bottom:8px;">
-					<div style="display:flex;gap:8px;align-items:center;">
-						<div class="small">Note: travel speed hidden, est. minutes use default calculation unless overridden.</div>
-					</div>
-				</div>
+<main>
+  <!-- small top spacer to align under header -->
+  <div class="page-inner">
 
-				<div class="request-arrival-wrapper">
+    <!-- Analytics Page -->
+    <section id="analyticsPage" class="view-section hidden" aria-labelledby="analyticsHeading">
+      <h2 id="analyticsHeading">Analytics</h2>
 
-					<table id="requestTable" aria-label="Resource requests">
-					<thead>
-						<tr>
-							<th><div>Time</div></th>
-							<th><div>Item</div></th>
-							<th><div>Qty</div></th>
-							<th><div>Cat</div></th>
-							<th><div>Src</div></th>
-							<th><div>Remarks</div></th>
-							<th><div>Est<br>Min</div></th>
-							<th><div>ETA</div></th>
-							<th><div>Del</div></th>
-							<th class="checkbox-col"><div>Done</div></th>
-						</tr>
-					</thead>
-					<tbody></tbody>
-				</table>
+      <div class="analytics-grid">
+        <div class="chart-card">
+          <canvas id="chartStatus" aria-label="Status chart"></canvas>
+        </div>
+        <div class="chart-card">
+          <canvas id="chartQty" aria-label="Quantity chart"></canvas>
+        </div>
+        <div class="chart-card wide">
+          <canvas id="chartCategories" aria-label="Categories chart"></canvas>
+        </div>
+      </div>
+    </section>
 
-				<table id="arrivalTable" aria-label="Arrived items">
-					<thead>
-						<tr>
-							<th><div>Time</div></th>
-							<th><div>Item</div></th>
-							<th><div>Qty</div></th>
-							<th><div>Cat</div></th>
-							<th><div>Src</div></th>
-							<th><div>Remarks</div></th>
-							<th><div>Time<br>Arrived</div></th>
-							<th><div>Del</div></th>
-						</tr>
-					</thead>
-					<tbody></tbody>
-				</table>
+    <!-- Scenarios Page -->
+    <section id="scenariosPage" class="view-section hidden" aria-labelledby="scenariosHeading">
+      <h2 id="scenariosHeading">Saved Scenarios</h2>
+      <div id="scenariosList" class="scenarios-list"></div>
+    </section>
 
-				</div>
+    <!-- Ongoing / Grand Page -->
+    <section id="grandPage" class="view-section" aria-labelledby="grandHeading">
+      <div class="grand-header">
 
-				<div style="display:flex;gap:8px;margin-top:10px;">
-					<button class="btn" id="addRowBtn">Add Request Row</button>
-				</div>
-			</div>
+        <!-- warning area for missing default (UPM) or other messages -->
+        <div id="csvWarning" class="csv-warning hidden" role="alert" aria-live="polite"></div>
+      </div>
 
-			<footer>ETS Resource Allocation Prototype</footer>
-		</main>
+      <div class="scenario-top-controls">
+        <label class="label-inline">
+          Scenario name
+          <input id="scenarioName" class="small-input" placeholder="e.g., Typhoon Response (01/13/2025)" />
+        </label>
 
-		<!-- Modal for creating resource sets and for save/export -->
-		<div class="modal-backdrop" id="modalBackdrop">
-			<div class="modal" id="modal"></div>
-		</div>
-	</body>
+        <label class="label-inline">
+          Incident Type
+          <select id="incidentType">
+            <option value="">Select type</option>
+            <option>Fire</option>
+            <option>Earthquake</option>
+            <option>Flood</option>
+            <option>Typhoon</option>
+            <option>Mass casualty</option>
+            <option value="Other">Other</option>
+          </select>
+        </label>
+
+        <input id="incidentTypeOther" class="small-input hidden" placeholder="Specify incident type..." />
+      </div>
+
+      <div class="page-content">
+        <h3>Incident Command Post Team</h3>
+        <table id="grandTable" class="wide-table" aria-describedby="grandTableDesc">
+          <colgroup>
+            <col style = "width: 100px;">
+            <col style = "width: 300px">
+          </colgroup>
+          <thead><tr><th>Role</th><th>Assignment</th></tr></thead>
+          <tbody id="grandTableBody"></tbody>
+        </table>
+        <p id="grandTableDesc" class="small muted">
+        </p>
+      </div>
+
+      <div class="page-content">
+        <h3>Resource Request Log</h3>
+        <p class="small muted">Est. minutes are auto-calculated from distance; you may override per-row.</p>
+
+        <!-- NEW: wrapper ensures the table scrolls inside the white card and never overflows -->
+        <div class="request-log-wrap">
+          <table id="requestTable" class="wide-table" aria-describedby="requestTableDesc">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Item</th>
+                <th>Qty</th>
+                <th>Category</th>
+                <th>Source</th>
+                <th>Remarks</th>
+                <th>Est. (min.)</th>
+                <th>ETA</th>
+                <th>Del</th>
+                <th>Done</th>
+                <th>Set</th>
+              </tr>
+            </thead>
+            <tbody id="requestTableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="controls-row">
+          <button id="addRowBtn" class="btn">Add Row</button>
+        </div>
+
+        <p id="requestTableDesc" class="small muted">Select Category → Source to auto-fill ETA/Est.</p>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<!-- Summary panel (slide-in; initially hidden) -->
+<aside id="summaryPanel" class="summary-panel hidden" aria-hidden="true">
+  <button id="summaryClose" class="panel-close" aria-label="Close summary">✕</button>
+  <h3>Summary</h3>
+  <div class="summary-item">Total requests: <span id="sumTotalRequests">0</span></div>
+  <div class="summary-item">Total qty: <span id="sumTotalQty">0</span></div>
+  <div class="summary-item">Completed: <span id="sumCompleted">0</span></div>
+  <div class="summary-item">Pending: <span id="sumPending">0</span></div>
+
+  <h4>ETA</h4>
+  <div class="summary-item">On time: <span id="etaOnTime">0</span></div>
+  <div class="summary-item">Approaching: <span id="etaApproach">0</span></div>
+  <div class="summary-item">Late: <span id="etaLate">0</span></div>
+
+  <div class="progress-bar-outer">
+    <div id="progressBar" class="progress-bar-inner" style="width:0%"></div>
+    <div id="progressPct" style="text-align:right;margin-top:6px">0%</div>
+  </div>
+</aside>
+
+<!-- Toggle is after the panel so CSS sibling selector can move it left of the open panel -->
+<button id="summaryToggleBtn" class="summary-toggle" title="Toggle summary">▸</button>
+
+<!-- Static modal/backdrop kept hidden — script uses dynamic elements when needed (Option 2 uses CSV-only; no modal creation) -->
+<div id="modalBackdrop" class="modal-backdrop hidden" aria-hidden="true">
+  <div id="modal" class="modal"></div>
+</div>
+
+<!-- main application script -->
+<script src="script.js" defer></script>
+</body>
 </html>
