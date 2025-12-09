@@ -11,6 +11,9 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
 
+  <!-- html2canvas for screenshotting Analytics into the PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+
   <!-- jsPDF + autoTable (deferred) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js" defer></script>
@@ -30,17 +33,20 @@
   </nav>
 
   <div class="right-actions" id="topActions" aria-hidden="false">
-    <!-- CSV loader & location selector (JS will create dropdown inside .resources-upload) -->
+    <!-- CSV loader & location selector -->
     <div class="csv-controls" aria-label="Resources">
       <label class="btn file-btn" title="Upload a resources.csv (optional)">
         Upload CSV
         <input type="file" id="csvUpload" accept=".csv" hidden />
       </label>
 
-      <!-- JS will insert the location select here -->
+      <!-- JS inserts the location select here -->
       <div class="resources-upload" style="display:flex; align-items:center; gap:8px;"></div>
 
-      <span id="csvStatus" class="small muted">resources.csv: <span id="csvFileName">not loaded</span></span>
+      <!-- LEFT text -->
+      <span id="csvStatus" class="small muted">
+        <span id="csvFileName">no csv file uploaded</span>
+      </span>
     </div>
 
     <div class="autosave-text"><span id="autosaveBadge">Autosaved --:--</span></div>
@@ -53,12 +59,11 @@
 </header>
 
 <main>
-  <!-- small top spacer to align under header -->
   <div class="page-inner">
 
-    <!-- Analytics Page -->
+    <!-- analytics Page -->
     <section id="analyticsPage" class="view-section hidden" aria-labelledby="analyticsHeading">
-      <h2 id="analyticsHeading">Analytics</h2>
+      <h2 id="analyticsHeading">Real-Time Analytics</h2>
 
       <div class="analytics-grid">
         <div class="chart-card">
@@ -73,17 +78,17 @@
       </div>
     </section>
 
-    <!-- Scenarios Page -->
+    <!-- scenarios -->
     <section id="scenariosPage" class="view-section hidden" aria-labelledby="scenariosHeading">
       <h2 id="scenariosHeading">Saved Scenarios</h2>
       <div id="scenariosList" class="scenarios-list"></div>
     </section>
 
-    <!-- Ongoing / Grand Page -->
+    <!-- ongoing -->
     <section id="grandPage" class="view-section" aria-labelledby="grandHeading">
       <div class="grand-header">
 
-        <!-- warning area for missing default (UPM) or other messages -->
+        <!-- old red warning removed from UI; kept but always hidden -->
         <div id="csvWarning" class="csv-warning hidden" role="alert" aria-live="polite"></div>
       </div>
 
@@ -113,26 +118,34 @@
         <h3>Incident Command Post Team</h3>
         <table id="grandTable" class="wide-table" aria-describedby="grandTableDesc">
           <colgroup>
-            <col style = "width: 100px;">
-            <col style = "width: 300px">
+            <col style="width: 160px;">
+            <col style="width: auto;">
           </colgroup>
           <thead><tr><th>Role</th><th>Assignment</th></tr></thead>
           <tbody id="grandTableBody"></tbody>
         </table>
-        <p id="grandTableDesc" class="small muted">
-        </p>
+        <p id="grandTableDesc" class="small muted"></p>
       </div>
 
       <div class="page-content">
         <h3>Resource Request Log</h3>
-        <p class="small muted">Est. minutes are auto-calculated from distance; you may override per-row.</p>
 
-        <!-- NEW: wrapper ensures the table scrolls inside the white card and never overflows -->
+        <div class="request-times small">
+          <span>Start Time: <span id="startTimeLabel">--:--</span></span>
+          <span class="time-separator"></span>
+          <span>End Time: <span id="endTimeLabel">--:--</span></span>
+        </div>
+
+        <p class="small muted">
+          Est. minutes are auto-calculated from distance; you may override per-row.
+        </p>
+
+        <!-- table inside white card; horizontal scroll nalang -->
         <div class="request-log-wrap">
           <table id="requestTable" class="wide-table" aria-describedby="requestTableDesc">
             <thead>
               <tr>
-                <th></th>
+                <th style="width: 110px;"></th>
                 <th>Item</th>
                 <th>Qty</th>
                 <th>Category</th>
@@ -153,15 +166,18 @@
           <button id="addRowBtn" class="btn">Add Row</button>
         </div>
 
-        <p id="requestTableDesc" class="small muted">Select Category → Source to auto-fill ETA/Est.</p>
+        <p id="requestTableDesc" class="small muted">
+          Select Category → Source to auto-fill ETA/Est.
+        </p>
       </div>
     </section>
 
   </div>
 </main>
 
-<!-- Summary panel (slide-in; initially hidden) -->
+<!-- summary panel (slide-in tapos initially hidden) -->
 <aside id="summaryPanel" class="summary-panel hidden" aria-hidden="true">
+  <!-- X button visually removed via CSS; toggle button handles closing -->
   <button id="summaryClose" class="panel-close" aria-label="Close summary">✕</button>
   <h3>Summary</h3>
   <div class="summary-item">Total requests: <span id="sumTotalRequests">0</span></div>
@@ -180,10 +196,10 @@
   </div>
 </aside>
 
-<!-- Toggle is after the panel so CSS sibling selector can move it left of the open panel -->
+<!-- toggle button (closes / opens the summary panel) -->
 <button id="summaryToggleBtn" class="summary-toggle" title="Toggle summary">▸</button>
 
-<!-- Static modal/backdrop kept hidden — script uses dynamic elements when needed (Option 2 uses CSV-only; no modal creation) -->
+<!-- static modal/backdrop kept hidden -->
 <div id="modalBackdrop" class="modal-backdrop hidden" aria-hidden="true">
   <div id="modal" class="modal"></div>
 </div>
