@@ -883,6 +883,118 @@
       endTime
     };
   }
+  
+  async function saveScenarioToSupabase(scenario, finished = false) {
+    if (!supabase) return;
+
+    const userId = load(KEY_LOGGED_IN);
+    if (!userId) return;
+
+    // 1. Save scenario
+    const { data: scenarioRow, error } = await supabase
+      .from('scenarios')
+      .insert({
+        user_id: userId,
+        name: scenario.name,
+        incident_type: scenario.incidentType,
+        resource_location: scenario.resourceLocation,
+        start_time: scenario.startTime,
+        end_time: scenario.endTime,
+        finished
+      })
+      .select()
+      .single();
+
+    if (error || !scenarioRow) {
+      console.error('Supabase scenario save failed:', error);
+      return;
+    }
+
+    // 2. Save requests
+    for (const r of scenario.requests) {
+      const { data: requestRow } = await supabase
+        .from('requests')
+        .insert({
+          scenario_id: scenarioRow.id,
+          time: r.time,
+          item: r.item,
+          qty: Number(r.qty) || 0,
+          category: r.category,
+          source: r.source,
+          remarks: r.remarks,
+          est_min: Number(r.estMin) || 0,
+          eta: r.eta,
+          done: r.done,
+          done_time: r.doneTime,
+          resource_location: r.resourceLocation
+        })
+        .select()
+        .single();
+
+      if (!requestRow) continue;
+
+      // 3. Save partials
+      for (const p of (r.partials || [])) {
+        await supabase.from('partials').insert({
+          request_id: requestRow.id,
+          qty: Number(p.qty) || 0,
+          time: p.time,
+          notes: p.notes
+        });
+      }
+    }
+  }
+
+  async function loadScenariosFromSupabase() {
+    if (!supabase) return [];
+
+    const userId = load(KEY_LOGGED_IN);
+    if (!userId) return [];
+
+    const { data, error } = await supabase
+      .from('scenarios')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error(error);
+      return [];
+    }
+
+    return data;
+  }
+
+  async function loadScenarioFromSupabase(scenarioId) {
+    const { data: scenario } = await supabase
+      .from('scenarios')
+      .select('*')
+      .eq('id', scenarioId)
+      .single();
+
+    if (!scenario) return;
+
+    const { data: requests } = await supabase
+      .from('requests')
+      .select('*')
+      .eq('scenario_id', scenarioId);
+
+    for (const r of (requests || [])) {
+      const { data: partials } = await supabase
+        .from('partials')
+        .select('*')
+        .eq('request_id', r.id);
+
+      r.partials = partials || [];
+    }
+
+    loadScenarioToUI({
+      ...scenario,
+      requests
+    });
+
+    switchToPage('grandPage');
+  }
 
   function saveScenarioToList(finished = false, overrideName = null) {
     const obj = getCurrentScenarioObject();
@@ -896,45 +1008,40 @@
     renderScenariosList();
   }
 
-  function renderScenariosList() {
+  async function renderScenariosList() {
     const container = refs.scenariosList;
     if (!container) return;
+
     container.innerHTML = '';
-    if (!scenarios.length) { container.innerHTML = '<div class="small">No saved scenarios</div>'; return; }
-    scenarios.forEach((s, i) => {
+
+    const dbScenarios = await loadScenariosFromSupabase();
+
+    if (!dbScenarios.length) {
+      container.innerHTML = '<div class="small">No saved scenarios</div>';
+      return;
+    }
+
+    dbScenarios.forEach(s => {
       const el = document.createElement('div');
       el.className = 'scenario-entry';
       el.innerHTML = `
         <div>
           <div style="font-weight:700">${s.name}</div>
-          <div class="meta">Created: ${new Date(s.createdAt).toLocaleString()} ${s.finished ? '• Finished' : ''}</div>
+          <div class="meta">
+            Created: ${new Date(s.created_at).toLocaleString()}
+            ${s.finished ? '• Finished' : ''}
+          </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn load-scn" data-idx="${i}">Open</button>
-          <button class="btn delete-scn" data-idx="${i}">Delete</button>
-        </div>
+        <button class="btn load-scn" data-id="${s.id}">Open</button>
       `;
       container.appendChild(el);
     });
 
-    $$('.load-scn', container).forEach(b => b.addEventListener('click', () => {
-      const idx = Number(b.dataset.idx);
-      const ans = confirm('Load scenario and save the current work?');
-      if (ans) {
-        const dateStr = formatDateMMDDYYYY(new Date());
-        const curName = refs.scenarioName?.value?.trim() || 'Untitled scenario';
-        saveScenarioToList(false, `${curName} (${dateStr})`);
-      }
-      loadScenarioToUI(scenarios[idx]);
-      switchToPage('grandPage');
-    }));
-    $$('.delete-scn', container).forEach(b => b.addEventListener('click', () => {
-      const idx = Number(b.dataset.idx);
-      if (!confirm('Delete scenario?')) return;
-      scenarios.splice(idx, 1);
-      save(KEY_SCENARIOS, scenarios);
-      renderScenariosList();
-    }));
+    $$('.load-scn', container).forEach(btn => {
+      btn.addEventListener('click', () => {
+        loadScenarioFromSupabase(btn.dataset.id);
+      });
+    });
   }
 
   function loadScenarioToUI(scn = {}) {
@@ -1585,11 +1692,19 @@
   // Save / Finish / New / Export
   refs.saveBtn && refs.saveBtn.addEventListener('click', () => saveScenarioToList(false));
 
-  refs.finishBtn && refs.finishBtn.addEventListener('click', () => {
+  refs.finishBtn && refs.finishBtn.addEventListener('click', async () => {
     endTime = nowHM();
     updateTimeLabels();
+
+    const scenario = getCurrentScenarioObject();
+
+    // Save to Supabase (final copy)
+    await saveScenarioToSupabase(scenario, true);
+
+    // Keep localStorage version
     saveScenarioToList(true);
   });
+
 
   refs.createNewBtn && refs.createNewBtn.addEventListener('click', () => {
     const resp = confirm('Save current scenario and start a new one?');
